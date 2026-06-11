@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>⚽ Mundial 2026 – Konkurs Bukmacherski</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            pitch: { 900: '#0a0f0d', 800: '#111a14', 700: '#162019', 600: '#1c2b1f' },
+            turf:  { DEFAULT: '#1aff6b', 400: '#4dff8c', 300: '#80ffad', dim: '#0d7a34' },
+            gold:  { DEFAULT: '#f5c518', dim: '#a8860f' },
+            red:   { bet: '#ff4444', betdim: '#7a1c1c' },
+          },
+          fontFamily: {
+            mono: ['"JetBrains Mono"', 'monospace'],
+            display: ['"Bebas Neue"', 'cursive'],
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    * { box-sizing: border-box; }
+    body { background: #0a0f0d; color: #e8f5eb; font-family: 'JetBrains Mono', monospace; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #111a14; }
+    ::-webkit-scrollbar-thumb { background: #1aff6b44; border-radius: 2px; }
+
+    .glow { text-shadow: 0 0 16px #1aff6b88; }
+    .card { background: #111a14; border: 1px solid #1c2b1f; border-radius: 12px; }
+    .card-hover:hover { border-color: #1aff6b44; transition: border-color .2s; }
+
+    .tab-active { background: #1aff6b; color: #0a0f0d; font-weight: 700; }
+    .tab-inactive { color: #4dff8c88; }
+    .tab-inactive:hover { color: #4dff8c; }
+
+    .btn-primary { background: #1aff6b; color: #0a0f0d; font-weight: 700; border-radius: 8px; padding: 12px 24px; transition: background .15s, transform .1s; cursor: pointer; border: none; font-family: 'JetBrains Mono', monospace; }
+    .btn-primary:hover { background: #4dff8c; transform: translateY(-1px); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-danger { background: #7a1c1c; color: #ff8888; font-weight: 600; border-radius: 8px; padding: 8px 16px; cursor: pointer; border: 1px solid #ff444433; font-family: 'JetBrains Mono', monospace; transition: background .15s; }
+    .btn-danger:hover { background: #ff4444; color: #fff; }
+    .btn-ghost { background: transparent; color: #4dff8c; border: 1px solid #1aff6b44; border-radius: 8px; padding: 8px 16px; cursor: pointer; font-family: 'JetBrains Mono', monospace; transition: all .15s; }
+    .btn-ghost:hover { background: #1aff6b22; border-color: #1aff6b; }
+
+    input, select, textarea {
+      background: #162019; border: 1px solid #1c2b1f; color: #e8f5eb;
+      border-radius: 8px; padding: 10px 14px; width: 100%; font-family: 'JetBrains Mono', monospace;
+      font-size: 14px; transition: border-color .15s;
+    }
+    input:focus, select:focus { outline: none; border-color: #1aff6b; }
+    select option { background: #111a14; }
+    label { font-size: 12px; color: #4dff8c88; letter-spacing: .08em; text-transform: uppercase; }
+
+    .status-pending  { background: #a87e0022; color: #f5c518; border: 1px solid #a87e0044; }
+    .status-won      { background: #0d7a3422; color: #1aff6b;  border: 1px solid #1aff6b44; }
+    .status-lost     { background: #7a1c1c22; color: #ff4444;  border: 1px solid #ff444433; }
+
+    .player-btn { border: 2px solid #1c2b1f; border-radius: 16px; padding: 24px; cursor: pointer; transition: all .2s; text-align: center; background: #111a14; }
+    .player-btn:hover, .player-btn.selected { border-color: #1aff6b; background: #1aff6b11; }
+    .player-btn.selected { box-shadow: 0 0 24px #1aff6b22; }
+
+    .rank-1 { color: #f5c518; }
+    .rank-2 { color: #c0c0c0; }
+    .rank-3 { color: #cd7f32; }
+
+    .profit-pos { color: #1aff6b; }
+    .profit-neg { color: #ff4444; }
+    .profit-neu { color: #888; }
+
+    .modal-bg { position: fixed; inset: 0; background: #0008; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; }
+    .modal { background: #111a14; border: 1px solid #1aff6b44; border-radius: 16px; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; padding: 24px; }
+
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1aff6b; color: #0a0f0d; padding: 12px 24px; border-radius: 8px; font-weight: 700; z-index: 100; transition: opacity .3s; }
+
+    .nav-bottom { position: fixed; bottom: 0; left: 0; right: 0; background: #0d1410; border-top: 1px solid #1c2b1f; z-index: 40; padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); }
+    .main-content { padding-bottom: 80px; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in { animation: fadeIn .25s ease; }
+
+    .stat-chip { background: #162019; border: 1px solid #1c2b1f; border-radius: 8px; padding: 10px 14px; }
+    .ticker { font-variant-numeric: tabular-nums; }
+
+    .coupon-card { border-left: 3px solid; }
+    .coupon-card.pending { border-left-color: #f5c518; }
+    .coupon-card.won     { border-left-color: #1aff6b; }
+    .coupon-card.lost    { border-left-color: #ff4444; }
+  </style>
+</head>
+<body>
+
+<!-- ===== FIREBASE CONFIG – WKLEJ SWOJE DANE ===== -->
+<script type="module">
+  // ─── FIREBASE CONFIG ────────────────────────────────────────────
+  const firebaseConfig = {
+    apiKey: "AIzaSyCr8ty215dVzj1rHDiKWO2QTjvYieKYeRo",
+    authDomain: "mundial2026downy.firebaseapp.com",
+    projectId: "mundial2026downy",
+    storageBucket: "mundial2026downy.firebasestorage.app",
+    messagingSenderId: "1065871251078",
+    appId: "1:1065871251078:web:e18be855f186c6db2ca307",
+    measurementId: "G-6XE4P0H3ET"
+  };
+  // ────────────────────────────────────────────────────────────────
+
+  import { initializeApp }                     from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, orderBy, onSnapshot, serverTimestamp }
+    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+
+  // ─── MECZE MUNDALU 2026 ─────────────────────────────────────────
+  const MATCHES = [
+    { id: 1, home: "Meksyk", away: "RPA", date: "2026-06-11" },
+
+    { id: 2, home: "Korea Południowa", away: "Czechy", date: "2026-06-12" },
+    { id: 3, home: "Kanada", away: "Bośnia i Hercegowina", date: "2026-06-12" },
+
+    { id: 4, home: "USA", away: "Paragwaj", date: "2026-06-13" },
+    { id: 5, home: "Katar", away: "Szwajcaria", date: "2026-06-13" },
+
+    { id: 6, home: "Brazylia", away: "Maroko", date: "2026-06-14" },
+    { id: 7, home: "Haiti", away: "Szkocja", date: "2026-06-14" },
+    { id: 8, home: "Australia", away: "Turcja", date: "2026-06-14" },
+    { id: 9, home: "Niemcy", away: "Curacao", date: "2026-06-14" },
+    { id: 10, home: "Holandia", away: "Japonia", date: "2026-06-14" },
+
+    { id: 11, home: "Wybrzeże Kości Słoniowej", away: "Ekwador", date: "2026-06-15" },
+    { id: 12, home: "Szwecja", away: "Tunezja", date: "2026-06-15" },
+    { id: 13, home: "Hiszpania", away: "Republika Zielonego Przylądka", date: "2026-06-15" },
+    { id: 14, home: "Belgia", away: "Egipt", date: "2026-06-15" },
+
+    { id: 15, home: "Arabia Saudyjska", away: "Urugwaj", date: "2026-06-16" },
+    { id: 16, home: "Iran", away: "Nowa Zelandia", date: "2026-06-16" },
+    { id: 17, home: "Francja", away: "Senegal", date: "2026-06-16" },
+
+    { id: 18, home: "Irak", away: "Norwegia", date: "2026-06-17" },
+    { id: 19, home: "Argentyna", away: "Algieria", date: "2026-06-17" },
+    { id: 20, home: "Austria", away: "Jordania", date: "2026-06-17" },
+    { id: 21, home: "Portugalia", away: "DR Konga", date: "2026-06-17" },
+    { id: 22, home: "Anglia", away: "Chorwacja", date: "2026-06-17" },
+
+    { id: 23, home: "Ghana", away: "Panama", date: "2026-06-18" },
+    { id: 24, home: "Uzbekistan", away: "Kolumbia", date: "2026-06-18" },
+    { id: 25, home: "Czechy", away: "RPA", date: "2026-06-18" },
+    { id: 26, home: "Szwajcaria", away: "Bośnia i Hercegowina", date: "2026-06-18" },
+
+    { id: 27, home: "Kanada", away: "Katar", date: "2026-06-19" },
+    { id: 28, home: "Meksyk", away: "Korea Południowa", date: "2026-06-19" },
+    { id: 29, home: "USA", away: "Australia", date: "2026-06-19" },
+
+    { id: 30, home: "Szkocja", away: "Maroko", date: "2026-06-20" },
+    { id: 31, home: "Brazylia", away: "Haiti", date: "2026-06-20" },
+    { id: 32, home: "Turcja", away: "Paragwaj", date: "2026-06-20" },
+    { id: 33, home: "Holandia", away: "Szwecja", date: "2026-06-20" },
+    { id: 34, home: "Niemcy", away: "WKS", date: "2026-06-20" },
+
+    { id: 35, home: "Ekwador", away: "Curacao", date: "2026-06-21" },
+    { id: 36, home: "Tunezja", away: "Japonia", date: "2026-06-21" },
+    { id: 37, home: "Hiszpania", away: "Arabia Saudyjska", date: "2026-06-21" },
+    { id: 38, home: "Belgia", away: "Iran", date: "2026-06-21" },
+
+    { id: 39, home: "Urugwaj", away: "Republika Zielonego Przylądka", date: "2026-06-22" },
+    { id: 40, home: "Nowa Zelandia", away: "Egipt", date: "2026-06-22" },
+    { id: 41, home: "Argentyna", away: "Austria", date: "2026-06-22" },
+    { id: 42, home: "Francja", away: "Irak", date: "2026-06-22" },
+
+    { id: 43, home: "Norwegia", away: "Senegal", date: "2026-06-23" },
+    { id: 44, home: "Jordania", away: "Algieria", date: "2026-06-23" },
+    { id: 45, home: "Portugalia", away: "Uzbekistan", date: "2026-06-23" },
+    { id: 46, home: "Anglia", away: "Ghana", date: "2026-06-23" },
+
+    { id: 47, home: "Panama", away: "Chorwacja", date: "2026-06-24" },
+    { id: 48, home: "Kolumbia", away: "DR Konga", date: "2026-06-24" },
+    { id: 49, home: "Szwajcaria", away: "Kanada", date: "2026-06-24" },
+    { id: 50, home: "Bośnia i Hercegowina", away: "Katar", date: "2026-06-24" },
+
+    { id: 51, home: "Maroko", away: "Haiti", date: "2026-06-25" },
+    { id: 52, home: "Szkocja", away: "Brazylia", date: "2026-06-25" },
+    { id: 53, home: "RPA", away: "Korea Południowa", date: "2026-06-25" },
+    { id: 54, home: "Czechy", away: "Meksyk", date: "2026-06-25" },
+    { id: 55, home: "Curacao", away: "WKS", date: "2026-06-25" },
+    { id: 56, home: "Ekwador", away: "Niemcy", date: "2026-06-25" },
+
+    { id: 57, home: "Japonia", away: "Szwecja", date: "2026-06-26" },
+    { id: 58, home: "Tunezja", away: "Holandia", date: "2026-06-26" },
+    { id: 59, home: "Paragwaj", away: "Australia", date: "2026-06-26" },
+    { id: 60, home: "Turcja", away: "USA", date: "2026-06-26" },
+    { id: 61, home: "Norwegia", away: "Francja", date: "2026-06-26" },
+    { id: 62, home: "Senegal", away: "Irak", date: "2026-06-26" },
+
+    { id: 63, home: "Republika Zielonego Przylądka", away: "Arabia Saudyjska", date: "2026-06-27" },
+    { id: 64, home: "Urugwaj", away: "Hiszpania", date: "2026-06-27" },
+    { id: 65, home: "Egipt", away: "Iran", date: "2026-06-27" },
+    { id: 66, home: "Nowa Zelandia", away: "Belgia", date: "2026-06-27" },
+    { id: 67, home: "Chorwacja", away: "Ghana", date: "2026-06-27" },
+    { id: 68, home: "Panama", away: "Anglia", date: "2026-06-27" },
+
+    { id: 69, home: "DR Konga", away: "Uzbekistan", date: "2026-06-28" },
+    { id: 70, home: "Kolumbia", away: "Portugalia", date: "2026-06-28" },
+    { id: 71, home: "Algieria", away: "Austria", date: "2026-06-28" },
+    { id: 72, home: "Jordania", away: "Argentyna", date: "2026-06-28" },
+
+    { id: 73, home: "2A", away: "2B", date: "2026-06-28" },
+
+    { id: 74, home: "1C", away: "2F", date: "2026-06-29" },
+    { id: 75, home: "1E", away: "3ABCDF", date: "2026-06-29" },
+
+    { id: 76, home: "1F", away: "2C", date: "2026-06-30" },
+    { id: 77, home: "2E", away: "2I", date: "2026-06-30" },
+    { id: 78, home: "1I", away: "3CDFGH", date: "2026-06-30" },
+
+    { id: 79, home: "1A", away: "3CEFHI", date: "2026-07-01" },
+    { id: 80, home: "1L", away: "3EHIJK", date: "2026-07-01" },
+    { id: 81, home: "1G", away: "3AEHIJ", date: "2026-07-01" },
+
+    { id: 82, home: "1D", away: "3BEFIJ", date: "2026-07-02" },
+    { id: 83, home: "1H", away: "2J", date: "2026-07-02" },
+
+    { id: 84, home: "2K", away: "2L", date: "2026-07-03" },
+    { id: 85, home: "1B", away: "3EFGIJ", date: "2026-07-03" },
+    { id: 86, home: "2D", away: "2G", date: "2026-07-03" },
+
+    { id: 87, home: "1J", away: "2H", date: "2026-07-04" },
+    { id: 88, home: "1K", away: "3DEIJL", date: "2026-07-04" },
+	{ id: 89, home: "2A/2B", away: "1F/2C", date: "2026-07-04" },
+    { id: 90, home: "1E/3ABCDF", away: "1I/3CDFGH", date: "2026-07-04" },
+
+    { id: 91, home: "1C/2F", away: "2E/2I", date: "2026-07-05" },
+
+    { id: 92, home: "1A/3CEFHI", away: "1L/3EHIJK", date: "2026-07-06" },
+    { id: 93, home: "2K/2L", away: "1H/2J", date: "2026-07-06" },
+
+    { id: 94, home: "1D/3BEFIJ", away: "1G/3AEHIJ", date: "2026-07-07" },
+    { id: 95, home: "1J/2H", away: "2D/2G", date: "2026-07-07" },
+    { id: 96, home: "1B/3EFGIJ", away: "1K/3DEIJL", date: "2026-07-07" },
+
+    { id: 97, home: "#1", away: "#2", date: "2026-07-09" },
+    { id: 98, home: "#5", away: "#6", date: "2026-07-10" },
+    { id: 99, home: "#3", away: "#4", date: "2026-07-11" },
+    { id: 100, home: "#7", away: "#8", date: "2026-07-12" },
+
+    { id: 101, home: "Zwycięzca #1", away: "Zwycięzca #2", date: "2026-07-14" },
+    { id: 102, home: "Zwycięzca #3", away: "Zwycięzca #4", date: "2026-07-15" },
+
+    { id: 103, home: "Przegrany Półfinału 1", away: "Przegrany Półfinału 2", date: "2026-07-18" },
+
+    { id: 104, home: "Zwycięzca Półfinału 1", away: "Zwycięzca Półfinału 2", date: "2026-07-19" }
+];
+
+  const PLAYERS = ["Majkel", "Kubson", "Pawcio"];
+
+  // ─── STATE ──────────────────────────────────────────────────────
+  let currentPlayer = localStorage.getItem('currentPlayer') || null;
+  let bets = [];
+  let activeTab = 'dashboard';
+  let filterPlayer = 'all';
+  let filterStatus = 'all';
+  let editingBetId = null;
+
+  // ─── INIT ────────────────────────────────────────────────────────
+  function init() {
+    renderApp();
+    if (currentPlayer) {
+      listenBets();
+    }
+  }
+
+  function listenBets() {
+    const q = query(collection(db, 'bets'), orderBy('createdAt', 'desc'));
+    onSnapshot(q, (snap) => {
+      bets = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderApp();
+    }, (err) => {
+      console.error(err);
+      showToast('❌ Błąd połączenia z Firebase', true);
+    });
+  }
+
+  // ─── RENDER ──────────────────────────────────────────────────────
+  function renderApp() {
+    const root = document.getElementById('root');
+    if (!root) return;
+
+    if (!currentPlayer) {
+      root.innerHTML = renderPlayerSelect();
+      attachPlayerSelectListeners();
+      return;
+    }
+
+    root.innerHTML = `
+      ${renderHeader()}
+      <div class="main-content px-3 py-4 max-w-2xl mx-auto">
+        ${renderTab()}
+      </div>
+      ${renderBottomNav()}
+    `;
+    attachListeners();
+  }
+
+  // ── PLAYER SELECT ──────────────────────────────────────────────
+  function renderPlayerSelect() {
+    return `
+    <div class="min-h-screen flex flex-col items-center justify-center px-4 py-12">
+      <div class="mb-10 text-center">
+        <div class="font-display text-5xl text-turf glow tracking-widest mb-2">MUNDIAL 2026</div>
+        <div class="text-sm text-turf/50 tracking-widest uppercase">Prywatny konkurs bukmacherski</div>
+      </div>
+      <div class="w-full max-w-sm space-y-4">
+        <div class="text-center text-xs text-turf/40 uppercase tracking-widest mb-6">Wybierz gracza</div>
+        ${PLAYERS.map(p => `
+          <button class="player-btn w-full" data-player="${p}">
+            <div class="text-3xl mb-2">${playerEmoji(p)}</div>
+            <div class="font-display text-2xl tracking-widest text-turf">${p.toUpperCase()}</div>
+          </button>
+        `).join('')}
+      </div>
+    </div>`;
+  }
+
+  function attachPlayerSelectListeners() {
+    document.querySelectorAll('[data-player]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentPlayer = btn.dataset.player;
+        localStorage.setItem('currentPlayer', currentPlayer);
+        listenBets();
+        renderApp();
+      });
+    });
+  }
+
+  function playerEmoji(p) {
+    return { Majkel: '🦁', Kubson: '🐺', Pawcio: '🦊' }[p] || '⚽';
+  }
+
+  // ── HEADER ────────────────────────────────────────────────────
+  function renderHeader() {
+    return `
+    <header class="sticky top-0 z-30 bg-pitch-900/95 backdrop-blur border-b border-pitch-600 px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="font-display text-xl tracking-widest text-turf glow">MUNDIAL<span class="text-white/30">2026</span></span>
+      </div>
+      <button id="switchPlayerBtn" class="flex items-center gap-2 text-xs text-turf/60 hover:text-turf transition-colors px-2 py-1">
+        <span>${playerEmoji(currentPlayer)}</span>
+        <span class="font-bold">${currentPlayer}</span>
+        <span class="text-turf/30 text-lg">⇄</span>
+      </button>
+    </header>`;
+  }
+
+  // ── BOTTOM NAV ────────────────────────────────────────────────
+  const TABS = [
+    { id: 'dashboard', icon: '📊', label: 'Ranking' },
+    { id: 'add',       icon: '➕', label: 'Kupon' },
+    { id: 'bets',      icon: '🎫', label: 'Kupony' },
+    { id: 'stats',     icon: '📈', label: 'Statsy' },
+  ];
+
+  function renderBottomNav() {
+    return `
+    <nav class="nav-bottom">
+      <div class="flex items-center justify-around max-w-2xl mx-auto">
+        ${TABS.map(t => `
+          <button data-tab="${t.id}" class="flex flex-col items-center gap-0.5 px-4 py-1 rounded-lg transition-all ${activeTab === t.id ? 'tab-active' : 'tab-inactive'}">
+            <span class="text-xl">${t.icon}</span>
+            <span class="text-xs font-bold tracking-wide">${t.label}</span>
+          </button>
+        `).join('')}
+      </div>
+    </nav>`;
+  }
+
+  // ── TAB ROUTER ────────────────────────────────────────────────
+  function renderTab() {
+    switch(activeTab) {
+      case 'dashboard': return renderDashboard();
+      case 'add':       return renderAddForm();
+      case 'bets':      return renderBetsList();
+      case 'stats':     return renderStats();
+      default:          return '';
+    }
+  }
+
+  // ── DASHBOARD ─────────────────────────────────────────────────
+  function renderDashboard() {
+    const totals = computeTotals();
+    const ranking = computeRanking();
+    const totalProfit = ranking.reduce((s, r) => s + r.profit, 0);
+    const allBets = bets.length;
+
+    const medals = ['🥇','🥈','🥉'];
+    const leader = ranking[0];
+
+    return `<div class="fade-in space-y-4">
+      <!-- Hero -->
+      <div class="card p-5 text-center relative overflow-hidden">
+        <div class="absolute inset-0 opacity-5" style="background:radial-gradient(circle at 50% 0%, #1aff6b 0%, transparent 70%)"></div>
+        <div class="font-display text-4xl text-turf glow tracking-widest mb-1">MUNDIAL 2026</div>
+        <div class="text-xs text-turf/40 tracking-widest uppercase mb-4">Prywatny konkurs bukmacherski</div>
+        <div class="grid grid-cols-3 gap-3">
+          <div class="stat-chip text-center">
+            <div class="text-xs text-turf/40 mb-1">Kuponów</div>
+            <div class="text-xl font-bold ticker">${allBets}</div>
+          </div>
+          <div class="stat-chip text-center">
+            <div class="text-xs text-turf/40 mb-1">Łączny profit</div>
+            <div class="text-xl font-bold ticker ${totalProfit >= 0 ? 'profit-pos' : 'profit-neg'}">${fmt(totalProfit)} zł</div>
+          </div>
+          <div class="stat-chip text-center">
+            <div class="text-xs text-turf/40 mb-1">Lider</div>
+            <div class="text-xl">${leader ? playerEmoji(leader.player) : '—'}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ranking -->
+      <div class="card p-4">
+        <div class="text-xs text-turf/40 uppercase tracking-widest mb-3">🏆 Ranking</div>
+        <div class="space-y-3">
+          ${ranking.map((r, i) => `
+            <div class="flex items-center gap-3 p-3 rounded-lg bg-pitch-700/40 card-hover transition-all">
+              <div class="text-2xl w-8 text-center ${['rank-1','rank-2','rank-3'][i] || ''}">${medals[i] || (i+1)}</div>
+              <div class="text-2xl">${playerEmoji(r.player)}</div>
+              <div class="flex-1">
+                <div class="font-bold text-sm">${r.player}</div>
+                <div class="text-xs text-turf/40">${r.won}✅ ${r.lost}❌ ${r.pending}⏳</div>
+              </div>
+              <div class="text-right">
+                <div class="font-bold ticker ${r.profit >= 0 ? 'profit-pos' : 'profit-neg'}">${fmt(r.profit)} zł</div>
+                <div class="text-xs text-turf/40">${r.count} kuponów</div>
+              </div>
+            </div>
+          `).join('')}
+          ${ranking.length === 0 ? '<div class="text-center text-turf/30 py-8 text-sm">Brak kuponów. Dodaj pierwszy!</div>' : ''}
+        </div>
+      </div>
+
+      <!-- My recent -->
+      <div class="card p-4">
+        <div class="text-xs text-turf/40 uppercase tracking-widest mb-3">🎫 Twoje ostatnie kupony</div>
+        ${bets.filter(b => b.player === currentPlayer).slice(0, 3).map(b => renderMiniCoupon(b)).join('') || '<div class="text-center text-turf/30 py-4 text-sm">Brak kuponów.</div>'}
+        ${bets.filter(b => b.player === currentPlayer).length > 3 ? `<button data-tab="bets" class="w-full text-center text-xs text-turf/50 hover:text-turf mt-3 transition-colors">Zobacz wszystkie →</button>` : ''}
+      </div>
+    </div>`;
+  }
+
+  function renderMiniCoupon(b) {
+    const statusLabel = { pending: 'Oczekujący', won: 'Trafiony', lost: 'Nietrafiony' }[b.status];
+    return `
+    <div class="coupon-card ${b.status} rounded-lg p-3 mb-2 bg-pitch-700/30 flex items-center justify-between gap-2">
+      <div class="flex-1 min-w-0">
+        <div class="text-xs font-bold truncate">${b.match}</div>
+        <div class="text-xs text-turf/40">${b.stake} zł × ${b.odds} = ${b.potentialWin} zł</div>
+      </div>
+      <span class="text-xs px-2 py-1 rounded-full whitespace-nowrap status-${b.status}">${statusLabel}</span>
+    </div>`;
+  }
+
+  // ── ADD FORM ──────────────────────────────────────────────────
+  function renderAddForm(bet = null) {
+    const isEdit = !!bet;
+    const matchOptions = MATCHES.map(m =>
+      `<option value="${m.home} vs ${m.away}" ${bet && bet.match === m.home+' vs '+m.away ? 'selected' : ''}>${m.date} – ${m.home} vs ${m.away}</option>`
+    ).join('');
+
+    return `<div class="fade-in">
+      <div class="card p-5">
+        <div class="font-display text-2xl tracking-widest text-turf mb-5">${isEdit ? '✏️ EDYTUJ KUPON' : '➕ NOWY KUPON'}</div>
+        <div class="space-y-4">
+
+          <div>
+            <label>Gracz</label>
+            <select id="f-player">
+              ${PLAYERS.map(p => `<option value="${p}" ${(bet ? bet.player : currentPlayer) === p ? 'selected':''}>${playerEmoji(p)} ${p}</option>`).join('')}
+            </select>
+          </div>
+
+          <div>
+            <label>Mecz</label>
+            <select id="f-match">
+              <option value="">— wybierz mecz —</option>
+              ${matchOptions}
+            </select>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label>Kurs łączny</label>
+              <input id="f-odds" type="number" step="0.01" min="1" placeholder="np. 4.50" value="${bet ? bet.odds : ''}" />
+            </div>
+            <div>
+              <label>Stawka (zł)</label>
+              <input id="f-stake" type="number" step="1" min="1" placeholder="np. 50" value="${bet ? bet.stake : ''}" />
+            </div>
+          </div>
+
+          <div>
+            <label>Potencjalna wygrana (zł)</label>
+            <input id="f-win" type="number" step="0.01" min="0" placeholder="np. 225.00" value="${bet ? bet.potentialWin : ''}" />
+            <div class="text-xs text-turf/40 mt-1">Wpisz ręcznie kwotę ewentualnej wygranej.</div>
+          </div>
+
+          ${isEdit ? `
+          <div>
+            <label>Status</label>
+            <select id="f-status">
+              <option value="pending" ${bet.status==='pending'?'selected':''}>⏳ Oczekujący</option>
+              <option value="won"     ${bet.status==='won'    ?'selected':''}>✅ Trafiony</option>
+              <option value="lost"    ${bet.status==='lost'   ?'selected':''}>❌ Nietrafiony</option>
+            </select>
+          </div>` : ''}
+
+          <button id="submitBetBtn" class="btn-primary w-full text-sm" data-edit-id="${isEdit ? bet.id : ''}">
+            ${isEdit ? '💾 Zapisz zmiany' : '🎫 Dodaj kupon'}
+          </button>
+          ${isEdit ? `<button id="cancelEditBtn" class="btn-ghost w-full text-sm mt-2">✕ Anuluj</button>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // ── BETS LIST ─────────────────────────────────────────────────
+  function renderBetsList() {
+    let filtered = [...bets];
+    if (filterPlayer !== 'all') filtered = filtered.filter(b => b.player === filterPlayer);
+    if (filterStatus !== 'all') filtered = filtered.filter(b => b.status === filterStatus);
+
+    return `<div class="fade-in space-y-4">
+      <!-- Filters -->
+      <div class="card p-4 space-y-3">
+        <div class="text-xs text-turf/40 uppercase tracking-widest">Filtry</div>
+        <div>
+          <label>Gracz</label>
+          <select id="filterPlayer">
+            <option value="all">Wszyscy gracze</option>
+            ${PLAYERS.map(p => `<option value="${p}" ${filterPlayer===p?'selected':''}>${playerEmoji(p)} ${p}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label>Status</label>
+          <select id="filterStatus">
+            <option value="all">Wszystkie statusy</option>
+            <option value="pending" ${filterStatus==='pending'?'selected':''}>⏳ Oczekujące</option>
+            <option value="won"     ${filterStatus==='won'    ?'selected':''}>✅ Trafione</option>
+            <option value="lost"    ${filterStatus==='lost'   ?'selected':''}>❌ Nietrafione</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Count -->
+      <div class="text-xs text-turf/40 px-1">Znaleziono: <span class="text-turf">${filtered.length}</span> kuponów</div>
+
+      <!-- List -->
+      <div class="space-y-3">
+        ${filtered.length === 0 ? '<div class="card p-8 text-center text-turf/30 text-sm">Brak kuponów spełniających kryteria.</div>' : ''}
+        ${filtered.map(b => renderCouponCard(b)).join('')}
+      </div>
+    </div>`;
+  }
+
+  function renderCouponCard(b) {
+    const statusLabel = { pending: '⏳ Oczekujący', won: '✅ Trafiony', lost: '❌ Nietrafiony' }[b.status];
+    const profit = calcProfit(b);
+    const profitClass = profit > 0 ? 'profit-pos' : profit < 0 ? 'profit-neg' : 'profit-neu';
+    const date = b.createdAt?.toDate ? b.createdAt.toDate().toLocaleDateString('pl-PL') : '—';
+
+    return `
+    <div class="card coupon-card ${b.status} p-4 fade-in" data-bet-id="${b.id}">
+      <div class="flex items-start justify-between gap-2 mb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">${playerEmoji(b.player)}</span>
+          <span class="text-xs font-bold text-turf/60">${b.player}</span>
+        </div>
+        <span class="text-xs px-2 py-1 rounded-full status-${b.status}">${statusLabel}</span>
+      </div>
+
+      <div class="text-sm font-bold mb-1 text-white">${b.match}</div>
+      <div class="text-xs text-turf/40 mb-3">Dodano: ${date}</div>
+
+      <div class="grid grid-cols-3 gap-2 mb-4">
+        <div class="stat-chip text-center">
+          <div class="text-xs text-turf/40">Kurs</div>
+          <div class="font-bold text-sm ticker">${b.odds}</div>
+        </div>
+        <div class="stat-chip text-center">
+          <div class="text-xs text-turf/40">Stawka</div>
+          <div class="font-bold text-sm ticker">${b.stake} zł</div>
+        </div>
+        <div class="stat-chip text-center">
+          <div class="text-xs text-turf/40">Wygrana</div>
+          <div class="font-bold text-sm ticker">${b.potentialWin} zł</div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between mb-4">
+        <span class="text-xs text-turf/40">Profit:</span>
+        <span class="font-bold ticker ${profitClass}">${fmt(profit)} zł</span>
+      </div>
+
+      <!-- Status change -->
+      <div class="flex gap-2 mb-3">
+        <button data-action="status" data-id="${b.id}" data-status="pending" class="flex-1 text-xs py-2 rounded-lg border ${b.status==='pending'?'status-pending':'border-pitch-600 text-turf/30 hover:text-turf/60'} transition-colors">⏳</button>
+        <button data-action="status" data-id="${b.id}" data-status="won"     class="flex-1 text-xs py-2 rounded-lg border ${b.status==='won'    ?'status-won'    :'border-pitch-600 text-turf/30 hover:text-turf/60'} transition-colors">✅</button>
+        <button data-action="status" data-id="${b.id}" data-status="lost"    class="flex-1 text-xs py-2 rounded-lg border ${b.status==='lost'   ?'status-lost'   :'border-pitch-600 text-turf/30 hover:text-turf/60'} transition-colors">❌</button>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex gap-2">
+        <button data-action="edit" data-id="${b.id}" class="btn-ghost flex-1 text-xs">✏️ Edytuj</button>
+        <button data-action="delete" data-id="${b.id}" class="btn-danger flex-1 text-xs">🗑️ Usuń</button>
+      </div>
+    </div>`;
+  }
+
+  // ── STATS ─────────────────────────────────────────────────────
+  function renderStats() {
+    const ranking = computeRanking();
+    return `<div class="fade-in space-y-4">
+      <div class="font-display text-2xl tracking-widest text-turf mb-2">📈 STATYSTYKI</div>
+      ${ranking.map(r => renderPlayerStats(r)).join('')}
+    </div>`;
+  }
+
+  function renderPlayerStats(r) {
+    const eff = r.count > 0 ? ((r.won / r.count) * 100).toFixed(0) : 0;
+    const effColor = eff >= 50 ? 'profit-pos' : 'profit-neg';
+
+    return `
+    <div class="card p-5">
+      <div class="flex items-center gap-3 mb-4">
+        <span class="text-3xl">${playerEmoji(r.player)}</span>
+        <div>
+          <div class="font-display text-xl tracking-widest text-turf">${r.player.toUpperCase()}</div>
+          <div class="text-xs text-turf/40">${r.count} kuponów łącznie</div>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="stat-chip">
+          <div class="text-xs text-turf/40 mb-1">Trafione</div>
+          <div class="text-xl font-bold profit-pos">${r.won} ✅</div>
+        </div>
+        <div class="stat-chip">
+          <div class="text-xs text-turf/40 mb-1">Oczekujące</div>
+          <div class="text-xl font-bold" style="color:#f5c518">${r.pending} ⏳</div>
+        </div>
+        <div class="stat-chip">
+          <div class="text-xs text-turf/40 mb-1">Nietrafione</div>
+          <div class="text-xl font-bold profit-neg">${r.lost} ❌</div>
+        </div>
+        <div class="stat-chip">
+          <div class="text-xs text-turf/40 mb-1">Skuteczność</div>
+          <div class="text-xl font-bold ${effColor}">${eff}%</div>
+        </div>
+        <div class="stat-chip">
+          <div class="text-xs text-turf/40 mb-1">Suma stawek</div>
+          <div class="text-xl font-bold ticker">${fmt(r.totalStake)} zł</div>
+        </div>
+        <div class="stat-chip">
+          <div class="text-xs text-turf/40 mb-1">Profit</div>
+          <div class="text-xl font-bold ticker ${r.profit >= 0 ? 'profit-pos' : 'profit-neg'}">${fmt(r.profit)} zł</div>
+        </div>
+      </div>
+      <!-- Mini bar -->
+      ${r.count > 0 ? `
+      <div class="mt-4">
+        <div class="text-xs text-turf/40 mb-1">Podział kuponów</div>
+        <div class="flex rounded-full overflow-hidden h-3 gap-0.5">
+          ${r.won     > 0 ? `<div class="bg-turf"     style="width:${(r.won    /r.count*100).toFixed(0)}%" title="Trafione"></div>` : ''}
+          ${r.pending > 0 ? `<div class="bg-gold"     style="width:${(r.pending/r.count*100).toFixed(0)}%" title="Oczekujące"></div>` : ''}
+          ${r.lost    > 0 ? `<div class="bg-red-bet"  style="width:${(r.lost   /r.count*100).toFixed(0)}%" title="Nietrafione"></div>` : ''}
+        </div>
+      </div>` : ''}
+    </div>`;
+  }
+
+  // ── COMPUTATIONS ──────────────────────────────────────────────
+  function computeRanking() {
+    return PLAYERS.map(player => {
+      const pb = bets.filter(b => b.player === player);
+      const won     = pb.filter(b => b.status === 'won').length;
+      const lost    = pb.filter(b => b.status === 'lost').length;
+      const pending = pb.filter(b => b.status === 'pending').length;
+      const profit  = pb.reduce((s, b) => s + calcProfit(b), 0);
+      const totalStake = pb.reduce((s, b) => s + Number(b.stake || 0), 0);
+      return { player, count: pb.length, won, lost, pending, profit, totalStake };
+    }).sort((a, b) => b.profit - a.profit);
+  }
+
+  function computeTotals() {
+    return { count: bets.length, profit: bets.reduce((s, b) => s + calcProfit(b), 0) };
+  }
+
+  function calcProfit(b) {
+    if (b.status === 'won')  return Number(b.potentialWin || 0) - Number(b.stake || 0);
+    if (b.status === 'lost') return -Number(b.stake || 0);
+    return 0;
+  }
+
+  function fmt(n) {
+    const v = Number(n || 0);
+    return (v >= 0 ? '+' : '') + v.toFixed(2);
+  }
+
+  // ── LISTENERS ─────────────────────────────────────────────────
+  function attachListeners() {
+    // Switch player
+    document.getElementById('switchPlayerBtn')?.addEventListener('click', () => {
+      currentPlayer = null;
+      localStorage.removeItem('currentPlayer');
+      renderApp();
+    });
+
+    // Bottom nav
+    document.querySelectorAll('[data-tab]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        activeTab = btn.dataset.tab;
+        editingBetId = null;
+        renderApp();
+      });
+    });
+
+    // Add/Edit form submit
+    document.getElementById('submitBetBtn')?.addEventListener('click', submitBet);
+    document.getElementById('cancelEditBtn')?.addEventListener('click', () => {
+      activeTab = 'bets'; editingBetId = null; renderApp();
+    });
+
+    // Bets list filters
+    document.getElementById('filterPlayer')?.addEventListener('change', e => { filterPlayer = e.target.value; renderApp(); });
+    document.getElementById('filterStatus')?.addEventListener('change', e => { filterStatus = e.target.value; renderApp(); });
+
+    // Coupon actions (edit / delete / status)
+    document.querySelectorAll('[data-action]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const { action, id, status } = btn.dataset;
+        if (action === 'edit') {
+          const bet = bets.find(b => b.id === id);
+          if (!bet) return;
+          editingBetId = id;
+          activeTab = 'add';
+          const container = document.querySelector('.main-content > div') || document.querySelector('.main-content');
+          if (container) container.innerHTML = renderAddForm(bet);
+          document.getElementById('submitBetBtn')?.addEventListener('click', submitBet);
+          document.getElementById('cancelEditBtn')?.addEventListener('click', () => { activeTab = 'bets'; editingBetId = null; renderApp(); });
+        }
+        if (action === 'delete') {
+          if (!confirm(`Usunąć kupon? Tej operacji nie można cofnąć.`)) return;
+          try {
+            await deleteDoc(doc(db, 'bets', id));
+            showToast('🗑️ Kupon usunięty');
+          } catch(e) { showToast('❌ Błąd usuwania', true); }
+        }
+        if (action === 'status') {
+          try {
+            await updateDoc(doc(db, 'bets', id), { status });
+            showToast({ pending:'⏳ Status: Oczekujący', won:'✅ Status: Trafiony', lost:'❌ Status: Nietrafiony' }[status]);
+          } catch(e) { showToast('❌ Błąd zmiany statusu', true); }
+        }
+      });
+    });
+  }
+
+  async function submitBet() {
+    const player  = document.getElementById('f-player')?.value;
+    const match   = document.getElementById('f-match')?.value;
+    const odds    = parseFloat(document.getElementById('f-odds')?.value);
+    const stake   = parseFloat(document.getElementById('f-stake')?.value);
+    const potWin  = parseFloat(document.getElementById('f-win')?.value);
+    const status  = document.getElementById('f-status')?.value || 'pending';
+    const editId  = document.getElementById('submitBetBtn')?.dataset.editId;
+
+    if (!match || !match.trim() || isNaN(odds) || isNaN(stake) || isNaN(potWin)) {
+      showToast('⚠️ Wypełnij wszystkie pola', true); return;
+    }
+
+    const data = { player, match, odds, stake, potentialWin: potWin, status };
+
+    try {
+      if (editId) {
+        await updateDoc(doc(db, 'bets', editId), data);
+        showToast('💾 Kupon zaktualizowany');
+      } else {
+        data.createdAt = serverTimestamp();
+        await addDoc(collection(db, 'bets'), data);
+        showToast('🎫 Kupon dodany!');
+      }
+      activeTab = 'bets'; editingBetId = null; renderApp();
+    } catch(e) {
+      console.error(e);
+      showToast('❌ Błąd zapisu', true);
+    }
+  }
+
+  // ── TOAST ─────────────────────────────────────────────────────
+  let toastTimeout;
+  function showToast(msg, isError = false) {
+    let el = document.getElementById('toast');
+    if (!el) { el = document.createElement('div'); el.id = 'toast'; el.className = 'toast'; document.body.appendChild(el); }
+    el.textContent = msg;
+    el.style.background = isError ? '#ff4444' : '#1aff6b';
+    el.style.color = isError ? '#fff' : '#0a0f0d';
+    el.style.opacity = '1';
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => { if(el) el.style.opacity = '0'; }, 2500);
+  }
+
+  // ─── BOOT ─────────────────────────────────────────────────────
+  init();
+</script>
+
+<div id="root"></div>
+
+</body>
+</html>
